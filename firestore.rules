@@ -1,0 +1,96 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function admin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
+    function packageIsValid() {
+      return request.resource.data.keys().hasOnly([
+        'slug', 'title', 'category', 'shortDescription', 'description',
+        'featuredImage', 'gallery', 'duration', 'itinerary', 'inclusions',
+        'exclusions', 'price', 'priceLabel', 'currency', 'availability',
+        'status', 'departureDate', 'updatedAt', 'createdAt', 'createdBy',
+        'updatedBy', 'localeContent', 'seoTitle', 'seoDescription', 'migrationSource'
+      ])
+      && request.resource.data.title is string
+      && request.resource.data.title.size() > 1
+      && request.resource.data.slug is string
+      && request.resource.data.slug.matches('^[a-z0-9]+(?:-[a-z0-9]+)*$')
+      && request.resource.data.category in ['umrah', 'hajj']
+      && request.resource.data.status in ['draft', 'published', 'closed', 'archived']
+      && request.resource.data.description is string
+      && request.resource.data.shortDescription is string
+      && request.resource.data.itinerary is list
+      && request.resource.data.inclusions is list
+      && request.resource.data.exclusions is list
+      && request.resource.data.currency is string
+      && request.resource.data.availability is string;
+    }
+
+    function jobIsValid() {
+      return request.resource.data.keys().hasOnly([
+        'slug', 'title', 'country', 'location', 'category', 'description',
+        'requirements', 'salary', 'currency', 'benefits',
+        'applicationInstructions', 'applicationDeadline', 'status',
+        'localeContent', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy'
+      ])
+      && request.resource.data.title is string
+      && request.resource.data.title.size() > 1
+      && request.resource.data.slug is string
+      && request.resource.data.slug.matches('^[a-z0-9]+(?:-[a-z0-9]+)*$')
+      && request.resource.data.country is string
+      && request.resource.data.category is string
+      && request.resource.data.description is string
+      && request.resource.data.requirements is list
+      && request.resource.data.benefits is list
+      && request.resource.data.applicationInstructions is string
+      && request.resource.data.status in ['draft', 'published', 'closed', 'archived'];
+    }
+
+    match /packages/{packageId} {
+      allow get, list: if (resource.data.status == 'published') || admin();
+      allow create, update: if admin() && packageIsValid();
+      allow delete: if admin();
+    }
+
+    match /jobs/{jobId} {
+      allow get, list: if (resource.data.status == 'published') || admin();
+      allow create, update: if admin() && jobIsValid();
+      allow delete: if admin();
+    }
+
+    match /siteSettings/public {
+      allow read: if true;
+      allow write: if admin();
+    }
+
+    match /faqs/{faqId} {
+      allow get, list: if (resource.data.status == 'published') || admin();
+      allow write: if admin();
+    }
+
+    // Created only by the trusted callable Function. No public client can read
+    // or write visitor data directly.
+    match /enquiries/{enquiryId} {
+      allow read, update, delete: if admin();
+      allow create: if false;
+    }
+
+    match /jobApplications/{applicationId} {
+      allow read, write: if admin();
+    }
+
+    match /media/{mediaId} {
+      allow read: if true;
+      allow write: if admin();
+    }
+
+    match /adminActivity/{activityId} {
+      allow read, create: if admin();
+      allow update, delete: if false;
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}

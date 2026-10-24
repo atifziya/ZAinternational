@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Our Services | ZA International Tours & Travels</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <link rel="stylesheet" href="/cs/style.css">
+    
+    <style>
+        /* Services Page Specific Styles */
+        .services-hero {
+            height: 50vh;
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('images/slide1.jpeg');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #fff;
+        }
+
+        .services-grid {
+            padding: 80px 5%;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            background: #f4f4f4;
+        }
+
+        .service-item {
+            background: #fff;
+            padding: 40px 30px;
+            border-radius: 15px;
+            text-align: center;
+            transition: var(--transition);
+            border-bottom: 4px solid transparent;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+
+        .service-item:hover {
+            transform: translateY(-10px);
+            border-bottom: 4px solid var(--accent);
+        }
+
+        .service-item i {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+
+        .service-item h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+
+        .service-item p {
+            font-size: 0.95rem;
+            color: #666;
+        }
+
+        .cta-section {
+            padding: 80px 5%;
+            background: var(--primary);
+            color: #fff;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<header class="navbar">
+    <div class="logo">
+        <img src="/images/logo.png" alt="ZA Logo">
+        <span class="company-name">ZA International Tours & Travels</span>
+    </div>
+
+    <div class="menu-toggle" id="mobile-menu">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+    </div>
+
+    <nav id="nav-menu">
+        <ul class="nav-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/pilgrimage/">Pilgrimage</a></li>
+            <li><a href="/careers/">Global Careers</a></li>
+            <li><a href="/services/">Solutions</a></li>
+            <li><a href="/contact/" class="nav-cta">Consult Now</a></li>
+        </ul>
+    </nav>
+</header>
+
+<section class="services-hero">
+    <div class="hero-content">
+        <span class="subtitle">Comprehensive Solutions</span>
+        <h1>Our Premium Services</h1>
+        <p>Your trusted partner for Pilgrimage, Documentation & Global Travel.</p>
+    </div>
+</section>
+
+<section class="services-grid">
+    
+    <div class="service-item">
+        <i class="fas fa-kaaba"></i>
+        <h3>Haj & Umrah</h3>
+        <p>Complete spiritual packages with premium accommodation, guided tours, and seamless transport for your sacred journey.</p>
+    </div>
+
+    <div class="service-item">
+        <i class="fas fa-passport"></i>
+        <h3>Visa Assistance</h3>
+        <p>Expert assistance for Tourist, Business, and Work Visas across Gulf countries, Europe, and more.</p>
+    </div>
+
+    <div class="service-item">
+        <i class="fas fa-plane-departure"></i>
+        <h3>Air Tickets</h3>
+        <p>Best fares guaranteed for domestic and international flights with instant booking and flexible cancellations.</p>
+    </div>
+
+    <div class="service-item">
+        <i class="fas fa-address-card"></i>
+        <h3>Passport Services</h3>
+        <p>Hassle-free support for new passport applications, renewals, and ECR/ENOR assistance.</p>
+    </div>
+
+    <div class="service-item">
+        <i class="fas fa-file-signature"></i>
+        <h3>Document Attestation</h3>
+        <p>Legalization services including Degree, Birth, and Marriage certificate attestation from MEA, MOFA, and Embassies.</p>
+    </div>
+
+    <div class="service-item">
+        <i class="fas fa-map-marked-alt"></i>
+        <h3>Holiday Packages</h3>
+        <p>Customized international and domestic tour packages designed to give you a luxury travel experience.</p>
+    </div>
+
+</section>
+
+<section class="cta-section">
+    <h2 style="font-family: 'Playfair Display'; font-size: 2.5rem; margin-bottom: 20px;">Ready to Start Your Journey?</h2>
+    <p style="margin-bottom: 30px; opacity: 0.9;">Contact our experts today for a personalized consultation.</p>
+    <a href="/contact/" class="btn btn-gold">Contact Us Now</a>
+</section>
+
+<footer class="footer">
+    <div class="footer-glass">
+        <div class="footer-col branding">
+            <img src="/images/logo.png" class="footer-logo" alt="ZA Logo">
+            <h3>ZA International Tours & Travels</h3>
+            <p class="management">
+                <strong>Prop:</strong> Zishan Alam<br>
+                <strong>Managed by:</strong> Mr. Shadab Alam & Mr. Atif Ziya
+            </p>
+        </div>
+
+        <div class="footer-col contact-info">
+            <h4>Contact Us</h4>
+            <p><i class="fas fa-envelope"></i> info@zainternational.co.in</p>
+            <p><i class="fas fa-phone"></i> +91 88773 85139</p>
+            <p><i class="fas fa-map-marker-alt"></i> Shaheen Bagh, New Delhi</p>
+        </div>
+
+        <div class="footer-col links">
+            <h4>Quick Links</h4>
+            <ul>
+                <li><a href="/pilgrimage/">Pilgrimage</a></li>
+                <li><a href="/careers/">Global Careers</a></li>
+                <li><a href="/services/">Documentation</a></li>
+                <li><a href="/privacy/">Privacy Policy</a></li>
+            </ul>
+        </div>
+
+        <div class="footer-col social">
+            <h4>Follow Us</h4>
+            <div class="social-icons">
+                <a href="#"><i class="fab fa-facebook-f"></i></a>
+                <a href="#"><i class="fab fa-instagram"></i></a>
+                <a href="#"><i class="fab fa-whatsapp"></i></a>
+                <a href="#"><i class="fab fa-youtube"></i></a>
+            </div>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        © 2026 ZA International Tours & Travels. All Rights Reserved.
+    </div>
+</footer>
+
+<script src="/js/script.js"></script>
+
+</body>
+</html>
