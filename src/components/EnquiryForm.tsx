@@ -21,6 +21,7 @@ export function EnquiryForm({
   const { t } = useTranslation();
   const [state, setState] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const [honeypot, setHoneypot] = useState('');
   const {
     register,
     handleSubmit,
@@ -35,15 +36,33 @@ export function EnquiryForm({
   const values = watch();
 
   const onSubmit = async (data: FormValues) => {
+    // 1. Honeypot check: If bot filled the hidden honeypot, silently abort
+    if (honeypot.trim() !== '') {
+      setState('success');
+      setMessage(t('form.successMsg', { defaultValue: 'Thank you. Your enquiry was received and the team will respond using the details you provided.' }));
+      return;
+    }
+
+    // 2. Client-side throttling: minimum 15 seconds cooldown
+    const lastSubmit = sessionStorage.getItem('za_last_enquiry');
+    const now = Date.now();
+    if (lastSubmit && now - Number(lastSubmit) < 15000) {
+      setState('error');
+      setMessage('Please wait a few seconds before submitting another enquiry, or contact our team directly on WhatsApp.');
+      return;
+    }
+
     if (!hasFirebaseConfig) {
       setState('error');
       setMessage(t('form.unconfiguredMsg', { defaultValue: 'Online enquiries are not configured yet. Please call or use the WhatsApp contact instead.' }));
       return;
     }
+
     setState('sending');
     setMessage('');
     try {
       await submitEnquiry(data);
+      sessionStorage.setItem('za_last_enquiry', String(Date.now()));
       setState('success');
       setMessage(t('form.successMsg', { defaultValue: 'Thank you. Your enquiry was received and the team will respond using the details you provided.' }));
       reset({
@@ -70,6 +89,19 @@ export function EnquiryForm({
 
   return (
     <form className="enquiry-form" onSubmit={handleSubmit(onSubmit)} noValidate>
+      {/* Hidden honeypot field for bot prevention */}
+      <div style={{ display: 'none' }} aria-hidden="true">
+        <label htmlFor="website_url">Do not fill this field</label>
+        <input
+          id="website_url"
+          name="website_url"
+          type="text"
+          value={honeypot}
+          onChange={(e) => setHoneypot(e.target.value)}
+          tabIndex={-1}
+          autoComplete="off"
+        />
+      </div>
       <div className="form-row">
         <Field label={t('form.fullName', { defaultValue: 'Full name' })} error={fieldError('name')}>
           <input autoComplete="name" {...register('name')} />

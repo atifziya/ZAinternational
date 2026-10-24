@@ -13,7 +13,6 @@ import {
   where,
   type DocumentData,
 } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
 import { firebaseServices } from './client';
 import type { Enquiry, EnquiryInput, Job, Package, PublishStatus, SiteSettings } from '../types/content';
 
@@ -86,10 +85,22 @@ export async function saveSiteSettings(settings: SiteSettings): Promise<void> {
   await setDoc(doc(db, 'siteSettings', 'public'), { ...settings, updatedAt: serverTimestamp() }, { merge: true });
 }
 
-export async function submitEnquiry(input: EnquiryInput): Promise<void> {
-  const { functions } = firebaseServices();
-  const submit = httpsCallable<EnquiryInput, { id: string }>(functions, 'submitEnquiry');
-  await submit(input);
+export async function submitEnquiry(input: EnquiryInput): Promise<{ id: string }> {
+  const { db } = firebaseServices();
+  const docRef = await addDoc(collection(db, 'enquiries'), {
+    name: input.name.trim(),
+    phone: input.phone.trim(),
+    email: input.email && input.email.trim() ? input.email.trim() : null,
+    category: input.category,
+    selectedItem: input.selectedItem && input.selectedItem.trim() ? input.selectedItem.trim() : null,
+    travelDate: input.travelDate && input.travelDate.trim() ? input.travelDate.trim() : null,
+    message: input.message.trim(),
+    consent: true,
+    status: 'new',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  return { id: docRef.id };
 }
 
 export function blankPackage(): Package {

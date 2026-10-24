@@ -48,6 +48,25 @@ service cloud.firestore {
       && request.resource.data.status in ['draft', 'published', 'closed', 'archived'];
     }
 
+    function enquiryIsValid() {
+      let data = request.resource.data;
+      return data.keys().hasOnly([
+        'name', 'phone', 'email', 'category', 'selectedItem', 'travelDate',
+        'message', 'consent', 'status', 'createdAt', 'updatedAt'
+      ])
+      && data.name is string && data.name.size() >= 2 && data.name.size() <= 80
+      && data.phone is string && data.phone.size() >= 7 && data.phone.size() <= 30
+      && (data.email == null || (data.email is string && data.email.size() <= 160))
+      && data.category in ['general', 'hajj', 'umrah', 'jobs', 'travel', 'documentation']
+      && (data.selectedItem == null || (data.selectedItem is string && data.selectedItem.size() <= 150))
+      && (data.travelDate == null || (data.travelDate is string && data.travelDate.size() <= 30))
+      && data.message is string && data.message.size() >= 10 && data.message.size() <= 1500
+      && data.consent == true
+      && data.status == 'new'
+      && data.createdAt == request.time
+      && data.updatedAt == request.time;
+    }
+
     match /packages/{packageId} {
       allow get, list: if (resource.data.status == 'published') || admin();
       allow create, update: if admin() && packageIsValid();
@@ -70,11 +89,11 @@ service cloud.firestore {
       allow write: if admin();
     }
 
-    // Created only by the trusted callable Function. No public client can read
-    // or write visitor data directly.
+    // Direct public creation allowed ONLY under strict Spark-compatible schema validation.
+    // Public reads, updates, and deletes remain strictly forbidden.
     match /enquiries/{enquiryId} {
       allow read, update, delete: if admin();
-      allow create: if false;
+      allow create: if enquiryIsValid();
     }
 
     match /jobApplications/{applicationId} {

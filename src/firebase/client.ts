@@ -2,16 +2,12 @@ import { getApp, getApps, initializeApp, type FirebaseApp } from 'firebase/app';
 import { initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from 'firebase/app-check';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
-import { getFunctions, type Functions } from 'firebase/functions';
-import { getStorage, type FirebaseStorage } from 'firebase/storage';
 import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
 
 export interface FirebaseServices {
   app: FirebaseApp;
   auth: Auth;
   db: Firestore;
-  functions: Functions;
-  storage: FirebaseStorage;
   appCheck?: AppCheck;
   analytics?: Analytics;
 }
@@ -89,8 +85,6 @@ export function firebaseServices(): FirebaseServices {
     app,
     auth: getAuth(app),
     db: getFirestore(app),
-    functions: getFunctions(app, import.meta.env.VITE_FIREBASE_FUNCTIONS_REGION || 'asia-south1'),
-    storage: getStorage(app),
     appCheck,
     analytics,
   };

@@ -4,7 +4,6 @@ import {
   setPersistence,
   signInWithEmailAndPassword,
 } from 'firebase/auth';
-import { deleteObject, getDownloadURL, listAll, ref, uploadBytesResumable } from 'firebase/storage';
 import { useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
@@ -22,7 +21,6 @@ import {
   Save,
   Search,
   Trash2,
-  UploadCloud,
   X,
 } from 'lucide-react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
@@ -241,7 +239,7 @@ export function DashboardPage() {
               <Plus size={16} /> Add / Manage jobs
             </Link>
             <Link className="button button-secondary" to="/admin/media">
-              <UploadCloud size={16} /> Upload media
+              <ImagePlus size={16} /> Manage media & assets
             </Link>
           </div>
         </section>
@@ -842,125 +840,241 @@ export function SettingsPage() {
   );
 }
 
+export const REPOSITORY_IMAGES = [
+  {
+    name: 'logo.png',
+    path: '/images/logo.png',
+    label: 'ZA International Logo',
+    description: 'Header, brand identity, and watermark',
+    size: '112 KB',
+  },
+  {
+    name: 'hdgd.png',
+    path: '/images/hdgd.png',
+    label: 'Holy Kaaba & Mosque Banner',
+    description: 'Hero background and spiritual pilgrimage imagery',
+    size: '2.08 MB',
+  },
+  {
+    name: 'umrah1.png',
+    path: '/images/umrah1.png',
+    label: 'Standard Umrah Package Banner',
+    description: 'Default featured image for standard & economy packages',
+    size: '2.23 MB',
+  },
+  {
+    name: 'umrah2.png',
+    path: '/images/umrah2.png',
+    label: 'Executive Umrah Package Banner',
+    description: 'Default featured image for VIP & executive packages',
+    size: '2.04 MB',
+  },
+  {
+    name: 'slide1.jpeg',
+    path: '/images/slide1.jpeg',
+    label: 'Pilgrim Gallery Slide 1',
+    description: 'Makkah pilgrims and spiritual journey scene',
+    size: '230 KB',
+  },
+  {
+    name: 'slide2.jpeg',
+    path: '/images/slide2.jpeg',
+    label: 'Pilgrim Gallery Slide 2',
+    description: 'Madinah Munawwarah and Prophet’s Mosque scene',
+    size: '240 KB',
+  },
+  {
+    name: 'slide3.jpeg',
+    path: '/images/slide3.jpeg',
+    label: 'Pilgrim Gallery Slide 3',
+    description: 'Pilgrim group guidance and hotel accommodations',
+    size: '204 KB',
+  },
+  {
+    name: 'slide4.jpeg',
+    path: '/images/slide4.jpeg',
+    label: 'Pilgrim Gallery Slide 4',
+    description: 'Holy sites and ziyarat transportation scene',
+    size: '125 KB',
+  },
+  {
+    name: 'slide5.jpeg',
+    path: '/images/slide5.jpeg',
+    label: 'Pilgrim Gallery Slide 5',
+    description: 'Pilgrimage prayer gathering scene',
+    size: '302 KB',
+  },
+] as const;
+
 export function MediaPage() {
-  const [files, setFiles] = useState<{ name: string; url: string }[]>([]);
-  const [alt, setAlt] = useState('');
-  const [selected, setSelected] = useState<File | null>(null);
-  const [message, setMessage] = useState('');
-  const [copiedName, setCopiedName] = useState<string | null>(null);
-  const [progress, setProgress] = useState<number | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [testUrl, setTestUrl] = useState('');
+  const [testedUrl, setTestedUrl] = useState('');
+  const [validationStatus, setValidationStatus] = useState<'idle' | 'testing' | 'valid' | 'invalid'>('idle');
+  const [validationError, setValidationError] = useState('');
 
-  const load = async () => {
-    try {
-      const listed = await listAll(ref(firebaseServices().storage, 'media'));
-      setFiles(
-        await Promise.all(
-          listed.items.map(async (item) => ({
-            name: item.name,
-            url: await getDownloadURL(item),
-          }))
-        )
-      );
-    } catch {
-      setMessage('Could not load media. Configure Storage rules and ensure admin is authenticated.');
-    }
-  };
-
-  useEffect(() => {
-    void load();
-  }, []);
-
-  const upload = () => {
-    if (!selected) {
-      setMessage('Choose an image first.');
-      return;
-    }
-    if (!selected.type.startsWith('image/') || selected.size > 5 * 1024 * 1024) {
-      setMessage('Choose a JPEG, PNG, or WebP image under 5 MB.');
-      return;
-    }
-    const safe = selected.name.toLowerCase().replace(/[^a-z0-9._-]/g, '-');
-    const task = uploadBytesResumable(ref(firebaseServices().storage, `media/${Date.now()}-${safe}`), selected, {
-      contentType: selected.type,
-      customMetadata: { alt: alt.slice(0, 150) },
-    });
-    task.on(
-      'state_changed',
-      (snapshot) => setProgress(Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)),
-      () => setMessage('Upload failed. Please try again.'),
-      () => {
-        setMessage('Image uploaded. Copy its URL into a package below.');
-        setSelected(null);
-        setAlt('');
-        setProgress(null);
-        void load();
-      }
-    );
-  };
-
-  const copyUrl = (name: string, url: string) => {
+  const copyPath = (key: string, text: string) => {
     if (navigator?.clipboard) {
-      void navigator.clipboard.writeText(url);
-      setCopiedName(name);
-      setTimeout(() => setCopiedName(null), 2500);
+      void navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(null), 2500);
     }
   };
 
-  const remove = async (name: string) => {
-    if (!window.confirm('Remove this media file? Verify it is not referenced by a published package first.')) return;
+  const handleValidateUrl = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = testUrl.trim();
+    if (!trimmed) {
+      setValidationError('Please enter an image URL to test.');
+      setValidationStatus('invalid');
+      return;
+    }
+    if (trimmed.startsWith('http://')) {
+      setValidationError('Insecure HTTP is blocked to protect visitors and prevent browser mixed-content warnings. Please provide an https:// URL.');
+      setValidationStatus('invalid');
+      return;
+    }
+    if (!trimmed.startsWith('https://')) {
+      setValidationError('Only secure https:// URLs are allowed (e.g. https://example.com/image.jpg). Local data or javascript schemes are strictly rejected.');
+      setValidationStatus('invalid');
+      return;
+    }
     try {
-      await deleteObject(ref(firebaseServices().storage, `media/${name}`));
-      await load();
+      new URL(trimmed);
+      setValidationError('');
+      setTestedUrl(trimmed);
+      setValidationStatus('testing');
     } catch {
-      setMessage('Could not remove this media file.');
+      setValidationError('Malformed URL. Please enter a valid https:// web address.');
+      setValidationStatus('invalid');
     }
   };
 
   return (
     <AdminPage
-      title="Media library"
-      subtitle="Upload web-ready JPEG, PNG, or WebP images (< 5 MB). Click 'Copy URL' to paste into packages."
+      title="Media library & assets"
+      subtitle="Firebase Spark Plan (Free Tier): Use built-in website images or test and link secure external HTTPS images with zero billing."
     >
-      <section className="editor-card">
-        <div className="form-row">
-          <label className="field">
-            <span>Image file (max 5 MB)</span>
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={(e) => setSelected(e.target.files?.[0] || null)}
-            />
-          </label>
-          <TextInput label="Alternative text (accessibility description)" value={alt} onChange={setAlt} />
-        </div>
-        {progress !== null && <p className="form-notice">Uploading {progress}%…</p>}
-        {message && <p className="form-notice">{message}</p>}
-        <button className="button button-primary" onClick={upload}>
-          <UploadCloud size={16} /> Upload image
-        </button>
+      <section className="editor-card" style={{ marginBottom: '1.5rem', borderLeft: '4px solid var(--forest)' }}>
+        <h2 style={{ fontSize: '1.25rem', marginTop: 0, marginBottom: '.5rem' }}>
+          Spark Plan Zero-Cost Media Architecture
+        </h2>
+        <p style={{ fontSize: '.88rem', color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
+          Firebase Storage uploads require a paid Blaze upgrade. To ensure you never receive an unexpected cloud bill, this workspace uses bundled static assets and verified external image links. Click <strong>Copy Path</strong> on any built-in image below to use it directly in packages or pages.
+        </p>
       </section>
 
+      <section className="editor-card" style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.3rem', marginTop: 0 }}>External HTTPS Image Validator & Previewer</h2>
+        <p style={{ fontSize: '.85rem', color: 'var(--muted)' }}>
+          Want to use an image hosted elsewhere (such as GitHub, Cloudinary, Imgur, or your CDN)? Validate it here before assigning it to a package.
+        </p>
+        <form onSubmit={handleValidateUrl} style={{ display: 'grid', gap: '.8rem' }}>
+          <div className="form-row">
+            <TextInput
+              label="HTTPS Image URL"
+              value={testUrl}
+              onChange={(val) => {
+                setTestUrl(val);
+                if (validationStatus !== 'idle') setValidationStatus('idle');
+              }}
+            />
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <button className="button button-primary" type="submit" style={{ width: '100%' }}>
+                <Search size={16} /> Validate & Preview URL
+              </button>
+            </div>
+          </div>
+        </form>
+
+        {validationStatus === 'invalid' && (
+          <p className="form-notice" style={{ color: '#b91c1c', marginTop: '.75rem' }}>
+            <AlertTriangle size={15} style={{ verticalAlign: 'middle', marginRight: '.3rem' }} />
+            {validationError}
+          </p>
+        )}
+
+        {(validationStatus === 'testing' || validationStatus === 'valid') && testedUrl && (
+          <div style={{ marginTop: '1.2rem', padding: '1rem', border: '1px solid var(--line)', background: '#fafafa', borderRadius: '4px' }}>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ width: '120px', height: '80px', background: '#e5e7eb', overflow: 'hidden', borderRadius: '3px', position: 'relative' }}>
+                <img
+                  src={testedUrl}
+                  alt="Validation preview"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onLoad={() => {
+                    setValidationStatus('valid');
+                    setValidationError('');
+                  }}
+                  onError={() => {
+                    setValidationStatus('invalid');
+                    setValidationError('Could not load image from this URL. Please verify the URL points directly to an accessible image and permits cross-origin loading.');
+                  }}
+                />
+              </div>
+              <div style={{ flex: 1, minWidth: '220px' }}>
+                {validationStatus === 'valid' ? (
+                  <>
+                    <p style={{ color: '#15803d', fontWeight: 600, margin: '0 0 .3rem', fontSize: '.85rem' }}>
+                      <CheckCircle2 size={15} style={{ verticalAlign: 'middle', marginRight: '.3rem' }} />
+                      Image verified and accessible!
+                    </p>
+                    <small style={{ color: 'var(--muted)', display: 'block', wordBreak: 'break-all' }}>{testedUrl}</small>
+                    <button
+                      type="button"
+                      className="button button-small button-outline"
+                      style={{ marginTop: '.5rem' }}
+                      onClick={() => copyPath('external', testedUrl)}
+                    >
+                      {copiedKey === 'external' ? <Check size={14} /> : <Copy size={14} />}
+                      {copiedKey === 'external' ? 'Copied URL!' : 'Copy Verified URL'}
+                    </button>
+                  </>
+                ) : (
+                  <p style={{ color: 'var(--muted)', fontSize: '.85rem', margin: 0 }}>
+                    <LoaderCircle size={15} className="spinner" style={{ verticalAlign: 'middle', marginRight: '.3rem' }} />
+                    Loading and verifying image...
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <h2 style={{ fontSize: '1.4rem', marginBottom: '1rem' }}>Built-in Website Images ({REPOSITORY_IMAGES.length})</h2>
       <div className="media-grid">
-        {files.map((file) => (
-          <article key={file.name}>
-            <img src={file.url} alt="" loading="lazy" />
-            <p>{file.name}</p>
-            <div style={{ display: 'flex', gap: '.4rem', padding: '0 .75rem', marginTop: '.4rem' }}>
+        {REPOSITORY_IMAGES.map((img) => (
+          <article key={img.name}>
+            <img src={img.path} alt={img.label} loading="lazy" />
+            <p style={{ fontWeight: 600, color: 'var(--forest)' }}>{img.label}</p>
+            <small style={{ display: 'block', padding: '0 .75rem', color: 'var(--muted)', fontSize: '.72rem' }}>
+              {img.description} • {img.size}
+            </small>
+            <p style={{ fontFamily: 'monospace', fontSize: '.68rem', color: '#555', background: '#f5f5f5', padding: '.25rem .5rem', margin: '.4rem .75rem', borderRadius: '3px' }}>
+              {img.path}
+            </p>
+            <div style={{ display: 'flex', gap: '.4rem', padding: '0 .75rem', marginTop: '.4rem', paddingBottom: '.5rem' }}>
               <button
                 className="button button-small button-outline"
                 type="button"
-                onClick={() => copyUrl(file.name, file.url)}
+                onClick={() => copyPath(img.name, img.path)}
+                style={{ flex: 1 }}
               >
-                {copiedName === file.name ? <Check size={14} /> : <Copy size={14} />}
-                {copiedName === file.name ? 'Copied!' : 'Copy URL'}
+                {copiedKey === img.name ? <Check size={14} /> : <Copy size={14} />}
+                {copiedKey === img.name ? 'Copied!' : 'Copy Path'}
               </button>
-              <a className="button button-small button-ghost" href={file.url} target="_blank" rel="noreferrer" style={{ color: 'var(--forest)' }}>
+              <a
+                className="button button-small button-ghost"
+                href={img.path}
+                target="_blank"
+                rel="noreferrer"
+                title="View full image in new tab"
+                style={{ color: 'var(--forest)' }}
+              >
                 <ExternalLink size={14} />
               </a>
             </div>
-            <button className="link-button danger" type="button" onClick={() => void remove(file.name)}>
-              <Trash2 size={14} /> Remove
-            </button>
           </article>
         ))}
       </div>
@@ -1051,11 +1165,57 @@ function PackageEditor({
       />
 
       <div className="form-row">
-        <TextInput
-          label="Featured image URL (e.g. /images/umrah1.png or Storage URL)"
-          value={value.featuredImage}
-          onChange={(v) => setValue({ ...value, featuredImage: v })}
-        />
+        <div>
+          <TextInput
+            label="Featured image URL (e.g. /images/umrah1.png or https://...)"
+            value={value.featuredImage}
+            onChange={(v) => setValue({ ...value, featuredImage: v })}
+          />
+          <div style={{ marginTop: '.35rem', fontSize: '.75rem', color: 'var(--muted)' }}>
+            <span>Quick-select: </span>
+            <button
+              type="button"
+              className="link-button"
+              style={{ fontSize: '.73rem', marginRight: '.45rem', textDecoration: 'underline' }}
+              onClick={() => setValue({ ...value, featuredImage: '/images/umrah1.png' })}
+            >
+              Standard Umrah
+            </button>
+            <button
+              type="button"
+              className="link-button"
+              style={{ fontSize: '.73rem', marginRight: '.45rem', textDecoration: 'underline' }}
+              onClick={() => setValue({ ...value, featuredImage: '/images/umrah2.png' })}
+            >
+              Executive Umrah
+            </button>
+            <button
+              type="button"
+              className="link-button"
+              style={{ fontSize: '.73rem', textDecoration: 'underline' }}
+              onClick={() => setValue({ ...value, featuredImage: '/images/hdgd.png' })}
+            >
+              Kaaba Banner
+            </button>
+          </div>
+          {value.featuredImage && (
+            <div style={{ marginTop: '.5rem', display: 'flex', alignItems: 'center', gap: '.6rem' }}>
+              <img
+                src={value.featuredImage}
+                alt="Preview"
+                style={{ width: '44px', height: '32px', objectFit: 'cover', borderRadius: '3px', border: '1px solid var(--line)' }}
+                onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
+              />
+              <small style={{ color: value.featuredImage.startsWith('http://') ? '#b91c1c' : 'var(--muted)', fontSize: '.73rem' }}>
+                {value.featuredImage.startsWith('http://')
+                  ? '⚠️ Insecure http:// URL — please use https://'
+                  : value.featuredImage.startsWith('/') || value.featuredImage.startsWith('https://')
+                  ? '✓ Valid image path/URL'
+                  : '⚠️ URL must start with /images/ or https://'}
+              </small>
+            </div>
+          )}
+        </div>
         <TextInput label="Duration (e.g. 18 days, 20 days)" value={value.duration} onChange={(v) => setValue({ ...value, duration: v })} />
       </div>
 
